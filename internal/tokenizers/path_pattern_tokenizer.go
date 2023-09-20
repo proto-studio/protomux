@@ -4,12 +4,16 @@ import (
 	"proto.zip/studio/mux/pkg/tokenizer"
 )
 
+// PathPatternTokenizer is responsible for tokenizing path patterns.
+// It processes the path from left to right, recognizing labels enclosed in curly braces and literals.
+// Unlike PathTokenizer, PathPatternTokenizer allows expressions in the path.
 type PathPatternTokenizer struct {
 	path []byte
 	len  int
 	pos  int
 }
 
+// NewPathPatternTokenizer initializes a new PathPatternTokenizer with the given path.
 func NewPathPatternTokenizer(path []byte) *PathPatternTokenizer {
 	t := &PathPatternTokenizer{
 		path: path,
@@ -18,6 +22,9 @@ func NewPathPatternTokenizer(path []byte) *PathPatternTokenizer {
 	return t
 }
 
+// Next returns the next token from the path pattern.
+// It processes the path from left to right, splitting it at slashes and recognizing labels enclosed in curly braces.
+// If an error occurs during tokenization, such as encountering unexpected characters, it returns a TokenizerError.
 func (t *PathPatternTokenizer) Next() (tokenizer.Token, tokenizer.TokenType, error) {
 	if t.pos == t.len {
 		return nil, tokenizer.TokenTypeNil, nil
@@ -100,6 +107,7 @@ func (t *PathPatternTokenizer) Next() (tokenizer.Token, tokenizer.TokenType, err
 	return ret, tokenizer.TokenTypeLiteral, nil
 }
 
+// TrailingSlash checks if the path ends with a slash.
 func (t *PathPatternTokenizer) TrailingSlash() bool {
 	return t.len > 0 && t.path[t.len-1] == '/'
 }

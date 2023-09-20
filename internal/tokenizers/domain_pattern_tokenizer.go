@@ -2,11 +2,16 @@ package tokenizers
 
 import "proto.zip/studio/mux/pkg/tokenizer"
 
+// DomainPatternTokenizer is responsible for tokenizing domain patterns.
+// It processes the domain from right to left (from TLD to subdomain).
 type DomainPatternTokenizer struct {
 	domain []byte
 	pos    int
 }
 
+// NewDomainPatternTokenizer initializes a new DomainPatternTokenizer with the given domain.
+//
+// DomainPatternTokenizer is different than DomainTokenizer since it allow expressions in the domain.
 func NewDomainPatternTokenizer(domain []byte) *DomainPatternTokenizer {
 	t := &DomainPatternTokenizer{
 		domain: domain,
@@ -15,6 +20,9 @@ func NewDomainPatternTokenizer(domain []byte) *DomainPatternTokenizer {
 	return t
 }
 
+// Next returns the next token from the domain pattern.
+// It processes the domain from right to left and recognizes labels enclosed in curly braces.
+// If an error occurs during tokenization, it returns a TokenizerError.
 func (t *DomainPatternTokenizer) Next() (tokenizer.Token, tokenizer.TokenType, error) {
 	if t.pos == -1 {
 		return nil, tokenizer.TokenTypeNil, nil

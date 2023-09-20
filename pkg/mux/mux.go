@@ -1,3 +1,4 @@
+// Package mux provides a multiplexer that routes HTTP requests to the appropriate resource handler.
 package mux
 
 import (
@@ -7,12 +8,13 @@ import (
 	"proto.zip/studio/mux/pkg/tokenizer"
 )
 
+// Mux is an instance of a request multiplexer.
 type Mux[RequestHandlerType any, ErrorHandlerType any] struct {
 	defaultHost *host.Host[RequestHandlerType, ErrorHandlerType]
 	hosts       routetree.Node[host.Host[RequestHandlerType, ErrorHandlerType]]
 }
 
-// Modifies the mux by adding default internal values.
+// WithDefaults modifies the mux by adding default internal values.
 // Required when creating a new mux. Called automatically by New() and NewHttp()
 func (m *Mux[RH, EH]) WithDefaults() *Mux[RH, EH] {
 	m.defaultHost = host.New[RH, EH]()
@@ -20,19 +22,19 @@ func (m *Mux[RH, EH]) WithDefaults() *Mux[RH, EH] {
 	return m
 }
 
-// Creates a new mux.
-// Requies types to be specified. In most cases you will want to use NewHttp()
+// New creates a new mux.
+// Requires types to be specified. In most cases you will want to use NewHttp()
 func New[RH any, EH any]() *Mux[RH, EH] {
 	return new(Mux[RH, EH]).WithDefaults()
 }
 
-// Returns the default host from the Mux. This host is used if no other hosts match the route.
+// DefaultHost returns the default host from the Mux. This host is used if no other hosts match the route.
 func (m *Mux[RH, EH]) DefaultHost() *host.Host[RH, EH] {
 	return m.defaultHost
 }
 
-// Creates a new host in the tree using a host pattern.
-// Returns all the tokens that correspond to a named parameter.
+// NewHost creates a new host in the tree using a host pattern.
+// Returns a new or existing host or an error. The pattern can be a fully qualified hostname or contain expressions.
 //
 // Example pattern: {subdomain}.example.com
 func (m *Mux[RH, EH]) NewHost(hostPattern string) (*host.Host[RH, EH], error) {
@@ -80,8 +82,12 @@ func (m *Mux[RH, EH]) NewHost(hostPattern string) (*host.Host[RH, EH], error) {
 	return h, nil
 }
 
-// Returns a host matching the hostname or the default host if none is found.
+// Host returns a host matching the hostname or the default host if none is found.
 // This functions expects a fully qualified hostname and will not match patterns.
+//
+// The second return value will contain any literals that satisfied the expressions in the pattern.
+//
+// This method never returns nil.
 func (m *Mux[RH, EH]) Host(hostname string) (*host.Host[RH, EH], []tokenizer.Token) {
 	tok := tokenizers.NewDomainTokenizer([]byte(hostname))
 
@@ -113,7 +119,7 @@ func (m *Mux[RH, EH]) Host(hostname string) (*host.Host[RH, EH], []tokenizer.Tok
 	return h, paramValues
 }
 
-// Registers a event handler for a specific HTTP method and and path.
+// Handle registers a event handler for a specific HTTP method and and path.
 func (m *Mux[RH, EH]) Handle(method, path string, handler RH) {
 	m.defaultHost.Handle(method, path, handler)
 }

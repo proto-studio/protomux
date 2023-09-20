@@ -10,35 +10,38 @@ import (
 	"proto.zip/studio/validate/pkg/errors"
 )
 
-// Error handler function interface for router.Mux implementations that use the
+// HttpErrorHandler represents a handler function interface for router.Mux implementations that use the
 // standard HTTP server method.
+//
+// It takes an additional argument with the error that was raised.
 type HttpErrorHandler func(error, http.ResponseWriter, *http.Request)
 
-// Implementation of the router.Mux pattern using standard HTTP server method.
+// HttpMux Implementation of the router.Mux pattern using standard HTTP server method.
 type HttpMux struct {
 	Mux[http.Handler, HttpErrorHandler]
 }
 
-// Implementation of the error interface for HTTP specific errors to
+// HttpError implementation of the error interface for HTTP specific errors to
 // allow better more semantic API responses.
 type HttpError struct {
 	// The HTTP status code for the error.
 	StatusCode int
 }
 
-// Implements standard error response for HttpError.
+// Error implements standard error response for HttpError.
 func (err HttpError) Error() string {
 	return http.StatusText(err.StatusCode)
 }
 
-// Creates a new HttpError with a specific status.
+// NewHttpError creates a new HttpError with a specific status.
 func NewHttpError(code int) HttpError {
 	return HttpError{
 		StatusCode: code,
 	}
 }
 
-// Default HTTP error handler.
+// DefaultErrorHandler is called when an error occurs processing the request and no host specific
+// error handler was assigned.
 //
 // If the error is an HttpError it will serve the status text as a string.
 // If it is a validation error on path or host it will return 404.
@@ -59,7 +62,10 @@ func DefaultErrorHandler(err error, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Creates a new HttpMux and initializes it.
+// NewHTTP Creates a new HttpMux and initializes it.
+//
+// HttpMux implements the mux interface with the standard Go HTTP event handlers.
+//
 // In most cases you should use this instead of router.New()
 func NewHTTP() *HttpMux {
 	m := new(HttpMux)
@@ -68,7 +74,7 @@ func NewHTTP() *HttpMux {
 	return m
 }
 
-// Private helper method to serve up an HTTP error using the host error handler if applicable.
+// serveHTTPError is a private helper method to serve up an HTTP error using the host error handler if applicable.
 // Otherwise DefaultErrorHandler is used.
 func (m *HttpMux) serveHTTPError(err error, w http.ResponseWriter, r *http.Request) {
 	host := muxcontext.Host[http.Handler, HttpErrorHandler](r.Context())
@@ -89,12 +95,11 @@ func (m *HttpMux) serveHTTPError(err error, w http.ResponseWriter, r *http.Reque
 
 // ServeHTTP implements the standard HTTP interface can be used with most libraries that support HTTP handlers.
 //
-// This method modifies the request context:
-//
-//	`Host` will be the router.Host struct
-//	`Resource` will be the router.Resource struct
-//	`PathParams` will be the parameters parsed from the URL path
-//	`HostParams` will be the parameters parsed from the hostname
+// This method modifies the request context. The following will be stored abd can be accessed with the muxcontext package:
+// - The Host for the request.
+// - The Resource for the request
+// - The parameters parsed from the URL path
+// - The parameters parsed from the hostname
 func (m *HttpMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -148,6 +153,7 @@ func (m *HttpMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// HandleFunc registers a new function request handler.
 func (m *HttpMux) HandleFunc(method, path string, handler func(http.ResponseWriter, *http.Request)) {
 	m.Handle(method, path, http.HandlerFunc(handler))
 }
